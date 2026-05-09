@@ -70,6 +70,7 @@ graph TD
 - **✅ CI/CD Pipelines**: Automated testing, building, and deployment via GitHub Actions.
 - **✅ Centralized Logging**: Real-time log aggregation with Grafana Loki.
 - **✅ Prometheus Monitoring**: Custom dashboards for tracking latency and concurrent streams.
+- **✅ Cost Optimization**: Optimized for AWS Spot Instances and S3 Lifecycle policies.
 - **✅ Security Best Practices**: IAM Roles for Service Accounts (IRSA), Secret encryption, and private networking.
 
 ---
@@ -135,6 +136,14 @@ Once deployed, you can access the monitoring stack:
 
 ## 🤝 Contact & Portfolio
 
+<<<<<<< HEAD
 Built with ❤️ by **[Sanjana Mahajan]**.
 - **LinkedIn**: [www.linkedin.com/in/sanjana-mahajan-467982233)
 - **Email**: [sanjanamaahi2001@gmail.com](mailto:sanjanamaahi2001@gmail.com)
+=======
+Built with ❤️ by **Sanjana**.
+- **Portfolio**: [personal-portfolio-gold-phi-44.vercel.app](https://personal-portfolio-gold-phi-44.vercel.app)
+- **LinkedIn**: [linkedin.com/in/yourprofile](https://linkedin.com/in/yourprofile)
+- **Email**: [sanjanamaahi2001@gmail.com](mailto:sanjanamaahi2001@gmail.com)
+
+---
