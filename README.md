@@ -135,12 +135,6 @@ Once deployed, you can access the monitoring stack:
 
 ## 🤝 Contact & Portfolio
 
-Built with ❤️ by **[Your Name]**.
-- **Portfolio**: [yourportfolio.com](https://yourportfolio.com)
-- **LinkedIn**: [linkedin.com/in/yourprofile](https://linkedin.com/in/yourprofile)
-- **Email**: [your.email@example.com](mailto:your.email@example.com)
-
----
-
-## 📄 License
-This project is licensed under the MIT License.
+Built with ❤️ by **[Sanjana Mahajan]**.
+- **LinkedIn**: [www.linkedin.com/in/sanjana-mahajan-467982233)
+- **Email**: [sanjanamaahi2001@gmail.com](mailto:sanjanamaahi2001@gmail.com)
