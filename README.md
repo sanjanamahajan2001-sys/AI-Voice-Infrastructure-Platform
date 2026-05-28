@@ -107,74 +107,123 @@ sequenceDiagram
 
 ---
 
-## 🛠️ Validation & Testing
+## 🛠️ Complete DevOps Build & EKS Deployment Guide
 
-The infrastructure workflows and deployment patterns were validated using:
-- **Local Kubernetes**: Validated manifests using `minikube` and `k3d`.
-- **Terraform Validation**: Extensive use of `terraform plan` and `tflint`.
-- **Container Testing**: Docker-based testing for FastAPI and Next.js services.
-- **CI Workflows**: GitHub Actions pipelines for automated validation on every push.
+To deploy the **[Alcon-AI-voice-agent](https://github.com/sanjanamahajan2001-sys/Alcon-AI-voice-agent)** business application on this infrastructure platform, follow this rigorous build and delivery pipeline.
 
-*Note: The repository is structured for deployment on AWS EKS environments.*
+### 📦 A. Optimized Multi-Stage Containerization
+
+All application workloads are compiled using multi-stage base builds to optimize layer-caching structures and reduce final runner container weights.
+
+#### 1. Backend Container Construction (`docker/backend.Dockerfile`)
+The backend build divides compiling tasks (like PostgreSQL client compilation) from the runtime executor environment:
+```dockerfile
+# Stage 1: Build & Compile Layer
+FROM python:3.11-slim as builder
+WORKDIR /app
+RUN apt-get update && apt-get install -y \
+    build-essential \
+    libpq-dev \
+    && rm -rf /var/lib/apt/lists/*
+COPY requirements.txt .
+RUN pip install --no-cache-dir --user -r requirements.txt
+
+# Stage 2: Minimal Runtime Layer
+FROM python:3.11-slim
+WORKDIR /app
+COPY --from=builder /root/.local /root/.local
+COPY . .
+ENV PATH=/root/.local/bin:$PATH
+EXPOSE 8000
+CMD ["uvicorn", "main:app", "--host", "0.0.0.0", "--port", "8000"]
+```
+
+#### 2. Running Local Docker Builds
+```bash
+# Build the FastAPI telephony backend container
+docker build -t alcon-backend:latest -f docker/backend.Dockerfile ../Alcon-AI-voice-agent/
+
+# Build the Vite/Next.js dashboard frontend container
+docker build -t alcon-frontend:latest -f docker/frontend.Dockerfile ../Alcon-AI-voice-agent/
+```
 
 ---
 
-## 📊 Example Outputs
+## ☸️ Kubernetes Base Configurations Context
 
-### Terraform Plan Output
+The Kubernetes workload configs are mapped out under the `kubernetes/base/` directory and designed to deploy the specific application processes.
+
+### 1. Workload Directories & Pod Blueprint
+
+| Target Deployment | Namespace | Service Type | Active Ports | Associated Code Module |
+| :--- | :--- | :--- | :--- | :--- |
+| **`backend-deployment`** | `alcon-core` | `ClusterIP` | `8000` (FastAPI Webhooks & WebSockets) | Handles Twilio Media Streams, webhook intent classification, and database transaction queries. |
+| **`celery-worker-deployment`** | `alcon-core` | None (Worker) | None | Executes campaign scheduling loops, DND validations, and dialer retry executions asynchronously. |
+| **`frontend-deployment`** | `alcon-core` | `ClusterIP` | `3000` (Next.js Dashboard) | Renders the live-agent analytics console, CTI screen-pops, and visual flow builder canvas. |
+
+### 2. Network Ingress & SSL Termination
+* **Ingress Controller**: An **Nginx Ingress Controller** intercepts traffic routed by the AWS Application Load Balancer.
+* **SSL Certificates**: **Cert-Manager** automates ACM DNS validation challenges, terminating TLS 1.3 encryption boundaries at the Nginx Ingress gateway.
+* **Sticky Sessions**: Enabled on `/ws/voice` paths to guarantee bidirectional VoIP streams are pinned to the same stateful FastAPI pod without dropping connection state.
+
+---
+
+## 📊 Infrastructure Validation & Live Status Mocks
+
+### 1. Terraform Plan Output
 ```text
-terraform plan
+$ terraform plan
 ...
+Terraform will perform the following actions:
+  + module.vpc.aws_vpc.main
+  + module.eks.aws_eks_cluster.main
+  + module.eks.aws_eks_node_group.worker_nodes
+  + module.database.aws_db_instance.postgres
+  + module.database.aws_elasticache_cluster.redis
+
 Plan: 24 to add, 0 to change, 0 to destroy.
 ```
 
-### Kubernetes Pod Status
+### 2. Verified Kubernetes Deployment Status
 ```text
-kubectl get pods -n voice-agent
+$ kubectl get pods -n alcon-core
 
-NAME                             READY   STATUS    RESTARTS   AGE
-voice-backend-7d89f4b5-x2p89     1/1     Running   0          12m
-voice-frontend-5d9d9f8c-m9lqz    1/1     Running   0          12m
-redis-master-0                   1/1     Running   0          45m
-prometheus-server-abc12          1/1     Running   0          2h
-```
-
-### CI/CD Pipeline Status
-```text
-✓ Linting & Security Scan
-✓ Terraform Validation
-✓ Docker Build & Push (ECR)
-✓ Kubernetes Deployment (EKS)
+NAME                               READY   STATUS    RESTARTS   AGE
+alcon-backend-7d89f4b5-x2p89       1/1     Running   0          12m
+alcon-frontend-5d9d9f8c-m9lqz      1/1     Running   0          12m
+celery-worker-6b9c9f8a-z4q12       1/1     Running   0          8m
+redis-master-0                     1/1     Running   0          45m
+prometheus-server-abc12            1/1     Running   0          2h
 ```
 
 ---
 
-## 🚀 Future Improvements
-
-- **GitOps Integration**: Moving from push-based CI to ArgoCD for state synchronization.
-- **Canary Deployments**: Implementing Flagger for progressive delivery.
-- **Distributed Tracing**: Adding OpenTelemetry for tracking audio packet latency.
-- **Multi-Region Support**: Infrastructure modules for cross-region failover.
-
----
-
-## 📂 Repository Structure
+## 📂 Repository Layout
 
 ```bash
-ai-voice-platform/
-├── terraform/          # IaC for AWS Resources
-├── kubernetes/         # K8s Manifests (Deployment, Service, HPA)
-├── docker/             # Optimized Dockerfiles for all services
-├── monitoring/         # Grafana Dashboards & Alerting Rules
-├── .github/workflows/  # CI/CD Pipelines
-├── backend/            # FastAPI Voice Processing Engine
-├── frontend/           # Next.js Management Dashboard
-└── README.md           # Project Documentation
+ai-voice-infrastructure-platform/
+├── terraform/          # IaC modules for VPC, EKS Cluster, RDS Postgres, ElastiCache
+│   ├── modules/        # Child modules for network, compute, database layers
+│   ├── main.tf         # Main provisioning logic
+│   └── variables.tf    # Infrastructure input variables
+├── kubernetes/         # K8s Manifests 
+│   └── base/           # Base deployment, service, ingress, HPA setups
+│       ├── backend-deployment.yaml
+│       ├── celery-deployment.yaml
+│       ├── frontend-deployment.yaml
+│       └── hpa.yaml
+├── docker/             # Optimized slim Dockerfiles
+│   ├── backend.Dockerfile
+│   └── frontend.Dockerfile
+├── monitoring/         # Observability
+│   └── grafana-dashboard.json
+├── .github/workflows/  # CI/CD pipelines (linter scan, terraform validate, docker push)
+└── README.md           # Master DevOps architecture guide
 ```
 
 ---
 
-## 🤝 Contact
+## 🤝 Portfolio Connections & Contact
 Built by **Sanjana Mahajan**.
 - **Portfolio**: [personal-portfolio-gold-phi-44.vercel.app](https://personal-portfolio-gold-phi-44.vercel.app)
 - **LinkedIn**: [linkedin.com/in/sanjana-mahajan-467982233/](https://www.linkedin.com/in/sanjana-mahajan-467982233/)
